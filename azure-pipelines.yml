@@ -13,8 +13,7 @@ variables:
   dockerRegistryServiceConnection: '413f2b4d-d2ae-4d40-9d26-aeae55b68675'
   imageRepository: 'eshoponweb'
   containerRegistry: 'eshopdockerregistry.azurecr.io'
-  dockerfilePathWeb: '$(Build.SourcesDirectory)/src/Web/Dockerfile'
-  dockerfilePathApi: '$(Build.SourcesDirectory)/src/PublicApi/Dockerfile'
+  dockerfilePath: '$(Build.SourcesDirectory)/src/Web/Dockerfile'
   tag: '$(Build.BuildId)'
 
   # Agent VM image name
@@ -34,21 +33,7 @@ stages:
       inputs:
         command: buildAndPush
         repository: $(imageRepository)
-        dockerfile: $(dockerfilePathWeb)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
-  - job: BuildApi
-    displayName: Build
-    pool:
-      vmImage: $(vmImageName)
-    steps:
-    - task: Docker@2
-      displayName: Build and push an api image to container registry
-      inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePathApi)
+        dockerfile: $(dockerfilePath)
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
