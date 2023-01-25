@@ -4,6 +4,7 @@ using System.Text;
 using BlazorShared;
 using BlazorShared.Models;
 using MediatR;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -27,12 +28,13 @@ using MinimalApi.Endpoint.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddEndpoints();
 
 // Use to force loading of appsettings.json of test project
 builder.Configuration.AddConfigurationFile("appsettings.test.json");
-builder.Logging.AddConsole();
-
+//builder.Logging.AddConsole();
+builder.Logging.AddApplicationInsights();
 Microsoft.eShopWeb.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -69,7 +71,6 @@ builder.Services.AddAuthentication(config =>
         ValidateAudience = false
     };
 });
-
 const string CORS_POLICY = "CorsPolicy";
 builder.Services.AddCors(options =>
 {
@@ -181,6 +182,8 @@ app.UseEndpoints(endpoints =>
 
 app.MapEndpoints();
 app.Logger.LogInformation("LAUNCHING PublicApi");
+throw new Exception("Cannot move further");
+
 app.Run();
 
 public partial class Program { }

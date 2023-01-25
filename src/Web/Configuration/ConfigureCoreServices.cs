@@ -23,7 +23,9 @@ public static class ConfigureCoreServices
         services.AddSingleton<IUriComposer>(new UriComposer(configuration.Get<CatalogSettings>()));
         services.AddScoped(typeof(IAppLogger<>), typeof(LoggerAdapter<>));
         services.AddTransient<IEmailSender, EmailSender>();
-
+        
+        //opts
+        services.Configure<Functions>(configuration.GetSection("Functions"));
         return services;
     }
 }

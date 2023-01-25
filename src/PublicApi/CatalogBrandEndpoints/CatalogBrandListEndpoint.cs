@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Builder;
@@ -37,6 +38,7 @@ public class CatalogBrandListEndpoint : IEndpoint<IResult>
 
     public async Task<IResult> HandleAsync()
     {
+        throw new Exception("Cannot move further");
         var response = new ListCatalogBrandsResponse();
 
         var items = await _catalogBrandRepository.ListAsync();

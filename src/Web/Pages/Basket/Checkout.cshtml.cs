@@ -7,7 +7,9 @@ using Microsoft.eShopWeb.ApplicationCore.Entities.OrderAggregate;
 using Microsoft.eShopWeb.ApplicationCore.Exceptions;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.Infrastructure.Identity;
+using Microsoft.eShopWeb.Web.Configuration;
 using Microsoft.eShopWeb.Web.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.eShopWeb.Web.Pages.Basket;
 
@@ -20,18 +22,21 @@ public class CheckoutModel : PageModel
     private string? _username = null;
     private readonly IBasketViewModelService _basketViewModelService;
     private readonly IAppLogger<CheckoutModel> _logger;
+    private readonly IOptionsSnapshot<Functions> _functionOpts;
+    private readonly HttpClient client = new HttpClient();
 
     public CheckoutModel(IBasketService basketService,
         IBasketViewModelService basketViewModelService,
         SignInManager<ApplicationUser> signInManager,
         IOrderService orderService,
-        IAppLogger<CheckoutModel> logger)
+        IAppLogger<CheckoutModel> logger, IOptionsSnapshot<Functions> functionOpts)
     {
         _basketService = basketService;
         _signInManager = signInManager;
         _orderService = orderService;
         _basketViewModelService = basketViewModelService;
         _logger = logger;
+        _functionOpts = functionOpts;
     }
 
     public BasketViewModel BasketModel { get; set; } = new BasketViewModel();
@@ -56,6 +61,23 @@ public class CheckoutModel : PageModel
             await _basketService.SetQuantities(BasketModel.Id, updateModel);
             await _orderService.CreateOrderAsync(BasketModel.Id, new Address("123 Main St.", "Kent", "OH", "United States", "44240"));
             await _basketService.DeleteBasketAsync(BasketModel.Id);
+            
+            if (!string.IsNullOrEmpty(_functionOpts.Value.ItemsReserverUri))
+            {
+                await client.PostAsync(_functionOpts.Value.ItemsReserverUri,
+                    JsonContent.Create(items.Select(x => new Order(x.Id, x.Quantity))));
+            }
+
+            if (!string.IsNullOrEmpty(_functionOpts.Value.DeliveryNotificationUri) )
+            {
+                var deliveryInfo = new DeliveryIngormation(
+                    Id: Guid.NewGuid(),
+                    ShippingAddress: new Address("123 Main St.", "Kent", "OH", "United States", "44240"),
+                    FinalPrice: BasketModel.Items.Select(x => x.Quantity * x.UnitPrice).Sum(),
+                    Items: BasketModel.Items.Select(x => new Item(x.Id, x.Quantity, x.ProductName)).ToArray());
+               await  client.PostAsync(_functionOpts.Value.DeliveryNotificationUri, JsonContent.Create(deliveryInfo));
+            }
+            
         }
         catch (EmptyBasketOnCheckoutException emptyBasketOnCheckoutException)
         {
@@ -94,4 +116,8 @@ public class CheckoutModel : PageModel
         cookieOptions.Expires = DateTime.Today.AddYears(10);
         Response.Cookies.Append(Constants.BASKET_COOKIENAME, _username, cookieOptions);
     }
+    public record class Order(int Id, int Quantity);
+    public record DeliveryIngormation(Guid Id, Address ShippingAddress, decimal FinalPrice, Item[] Items);
+    public record Item(int Id, int Quantity, string Name);
+
 }
