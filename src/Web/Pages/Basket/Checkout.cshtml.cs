@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,8 @@ using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Web.Configuration;
 using Microsoft.eShopWeb.Web.Interfaces;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Microsoft.eShopWeb.Web.Pages.Basket;
 
@@ -68,6 +71,20 @@ public class CheckoutModel : PageModel
                     JsonContent.Create(items.Select(x => new Order(x.Id, x.Quantity))));
             }
 
+            if (!string.IsNullOrEmpty(_functionOpts.Value.ServiceBusConnectionString))
+            {
+                var client = new ServiceBusClient(_functionOpts.Value.ServiceBusConnectionString);
+                var sender = client.CreateSender("orders");
+                var msg = new ServiceBusMessage(
+                    JsonConvert.SerializeObject(items.Select(x =>  new Order(x.Id, x.Quantity)))
+                    );
+                await sender.SendMessageAsync(msg);
+
+                await sender.DisposeAsync();
+                await client.DisposeAsync();
+            }            //Redirect to Empty Basket page
+
+
             if (!string.IsNullOrEmpty(_functionOpts.Value.DeliveryNotificationUri) )
             {
                 var deliveryInfo = new DeliveryIngormation(
@@ -81,7 +98,6 @@ public class CheckoutModel : PageModel
         }
         catch (EmptyBasketOnCheckoutException emptyBasketOnCheckoutException)
         {
-            //Redirect to Empty Basket page
             _logger.LogWarning(emptyBasketOnCheckoutException.Message);
             return RedirectToPage("/Basket/Index");
         }
