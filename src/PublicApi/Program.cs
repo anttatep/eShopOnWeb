@@ -182,7 +182,6 @@ app.UseEndpoints(endpoints =>
 
 app.MapEndpoints();
 app.Logger.LogInformation("LAUNCHING PublicApi");
-throw new Exception("Cannot move further");
 
 app.Run();
 
